@@ -1,30 +1,11 @@
 
-import * as React from "react";
 import { toast as sonnerToast } from "sonner";
-
-const TOAST_LIMIT = 5;
-export type ToastProps = React.ComponentPropsWithoutRef<typeof sonnerToast>;
-
-type ToastActionElement = React.ReactElement<typeof sonnerToast>;
-
-export type ToastActionProps = {
-  altText: string;
-  onClick: () => void;
-  children?: React.ReactNode;
-};
 
 type ToastOptions = {
   title?: string;
   description?: string;
   variant?: "default" | "destructive" | "success" | "warning";
-  action?: ToastActionElement;
-};
-
-const actionTypes = {
-  DEFAULT: "default",
-  DESTRUCTIVE: "destructive",
-  SUCCESS: "success",
-  WARNING: "warning",
+  action?: React.ReactElement;
 };
 
 export const useToast = () => {
@@ -32,17 +13,17 @@ export const useToast = () => {
     const { title, description, variant, action } = options;
 
     switch (variant) {
-      case actionTypes.DESTRUCTIVE:
+      case "destructive":
         return sonnerToast.error(title, {
           description,
           action,
         });
-      case actionTypes.SUCCESS:
+      case "success":
         return sonnerToast.success(title, {
           description,
           action,
         });
-      case actionTypes.WARNING:
+      case "warning":
         return sonnerToast.warning(title, {
           description,
           action,
@@ -58,7 +39,12 @@ export const useToast = () => {
   return {
     toast,
     dismiss: sonnerToast.dismiss,
-    actionTypes,
+    actionTypes: {
+      DEFAULT: "default",
+      DESTRUCTIVE: "destructive",
+      SUCCESS: "success",
+      WARNING: "warning",
+    },
   };
 };
 
