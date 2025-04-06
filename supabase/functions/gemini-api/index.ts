@@ -182,9 +182,13 @@ serve(async (req) => {
       const responseData = await response.json();
       console.log(`Gemini API response received successfully for ${action}`);
       
+      // Extract the text from the response to make it easier to work with
+      const responseText = responseData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
       return new Response(JSON.stringify({
         success: true,
-        data: responseData
+        data: responseData,
+        text: responseText // Add the extracted text directly to the response
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

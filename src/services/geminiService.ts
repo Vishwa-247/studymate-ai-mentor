@@ -79,7 +79,7 @@ const callGeminiApi = async <T>(action: string, data: any): Promise<T> => {
         break;
       
       case 'generate_interview_questions':
-        prompt = `Generate ${data.questionCount} interview questions for a ${data.jobRole} position 
+        prompt = `Generate ${data.questionCount || 5} interview questions for a ${data.jobRole} position 
                   with experience level of ${data.experience} years, 
                   focusing on the following tech stack: ${data.techStack}. 
                   Format the questions as a numbered list.`;
@@ -109,7 +109,7 @@ const callGeminiApi = async <T>(action: string, data: any): Promise<T> => {
     }
     
     // API call to Gemini
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -149,7 +149,10 @@ const callGeminiApi = async <T>(action: string, data: any): Promise<T> => {
     // Extract text from Gemini response
     let text = '';
     try {
-      text = responseData.candidates[0].content.parts[0].text || '';
+      text = responseData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!text) {
+        console.warn("No text content found in Gemini response:", responseData);
+      }
     } catch (error) {
       console.error("Error extracting text from Gemini response:", error);
       text = "Error: Unable to extract text from Gemini response";

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +12,7 @@ import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import CourseForm from "@/components/course/CourseForm";
 import { supabase } from "@/integrations/supabase/client";
-import { generateInterviewQuestionsWithFlask, TextResponse } from "@/services/flaskApi";
+import { generateInterviewQuestionsWithGemini } from "@/services/geminiService";
 import { useCourseGeneration } from "@/hooks/useCourseGeneration";
 
 enum InterviewStage {
@@ -125,7 +126,8 @@ const MockInterview = () => {
       setInterviewData(interview);
       console.log("Interview created:", interview);
 
-      const generatedData = await generateInterviewQuestionsWithFlask(
+      // Generate questions using Gemini API
+      const generatedData = await generateInterviewQuestionsWithGemini(
         role,
         techStack,
         experience,
@@ -138,29 +140,53 @@ const MockInterview = () => {
       
       let questionList: string[] = [];
       try {
-        const text = generatedData.text;
-        questionList = text
-          .split(/\d+\./)
-          .map(q => q.trim())
-          .filter(q => q.length > 0);
-          
+        if (generatedData.success && generatedData.text) {
+          const text = generatedData.text;
+          // Parse numbered list format (1. Question)
+          questionList = text
+            .split(/\d+\./)
+            .map(q => q.trim())
+            .filter(q => q.length > 0);
+            
+          if (questionList.length === 0) {
+            // If no questions were parsed, try looking for questions without numbers
+            questionList = text
+              .split('\n')
+              .map(line => line.trim())
+              .filter(line => line.length > 0 && line.endsWith('?'));
+          }
+        }
+        
+        // Fallback if no questions were generated or parsed
         if (questionList.length === 0) {
+          toast({
+            title: "API Warning",
+            description: "Could not generate custom questions. Using general questions instead.",
+            variant: "warning",
+          });
+          
           questionList = [
-            "Explain your experience with " + techStack,
-            "How do you handle tight deadlines?",
-            "Describe a challenging project you worked on",
-            "How do you stay updated with industry trends?",
-            "What are your strengths and weaknesses as a " + role + "?"
+            `Tell me about your experience with ${techStack}`,
+            `What projects have you worked on as a ${role}?`,
+            `How do you handle difficult technical challenges?`,
+            `Describe your development workflow`,
+            `Where do you see yourself improving as a ${role}?`
           ];
         }
       } catch (error) {
         console.error("Error parsing questions:", error);
+        toast({
+          title: "Warning",
+          description: "Error parsing generated questions. Using backup questions.",
+          variant: "warning",
+        });
+        
         questionList = [
-          "Explain your experience with " + techStack,
-          "How do you handle tight deadlines?",
-          "Describe a challenging project you worked on",
-          "How do you stay updated with industry trends?",
-          "What are your strengths and weaknesses as a " + role + "?"
+          `Tell me about your experience with ${techStack}`,
+          `What projects have you worked on as a ${role}?`,
+          `How do you handle difficult technical challenges?`,
+          `Describe your development workflow`,
+          `Where do you see yourself improving as a ${role}?`
         ];
       }
       
@@ -238,6 +264,11 @@ const MockInterview = () => {
     if (!interviewData || !questions[currentQuestionIndex]) return;
     
     try {
+      // Create a URL for the blob to allow preview if needed
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Here you would typically upload the blob to storage
+      // For now, we're just marking that an answer was recorded
       const { error } = await supabase
         .from('interview_questions')
         .update({ user_answer: "Recorded answer" })
@@ -390,6 +421,8 @@ const MockInterview = () => {
   };
 
   const handleDownloadInterview = () => {
+    // This would typically handle downloading interview data
+    // For now, it just shows a toast notification
     if (isMounted.current) {
       toast({
         title: "Interview Downloaded",
